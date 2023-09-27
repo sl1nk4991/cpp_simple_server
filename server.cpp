@@ -8,8 +8,11 @@
 #include <netinet/ip.h>
 #include <arpa/inet.h>
 #include <vector>
+#include <map>
+#include <iostream>
 
 #define MAX_CONS 100
+#define MAX_BUFF_LENGTH 4096
 
 namespace test {
 	class Server {
@@ -19,7 +22,18 @@ namespace test {
 			uint32_t					fd;
 			sockaddr_in					server_sock;
 			std::vector<uint32_t>		client_fds;
-			std::vector<sockaddr_in>	client_socks;
+			std::map<sockaddr_in*, socklen_t*> client_socks;
+
+			void handleConnection(int fd) {
+				std::cout << "Client connected" << std::endl;
+				std::vector<char> buff(MAX_BUFF_LENGTH);
+				std::string msg;
+				recv(fd, &buff[0], buff.size(), 0);
+				shutdown(fd, SHUT_RDWR);
+				msg.append(buff.cbegin(), buff.cend());
+
+				std::cout << msg << std::endl;
+			}
 		public:
 			Server(std::string addr, uint16_t port) {
 				this->addr = addr;
@@ -51,16 +65,20 @@ namespace test {
 				}
 
 				int cfd;
+				sockaddr_in *client_sock;
+				socklen_t *client_sock_len;
 				for(;;) {
-					cfd = accept(fd, NULL, NULL);
+					client_sock = new struct sockaddr_in;
+					client_sock_len = new socklen_t {sizeof *client_sock};
+					cfd = accept(fd, (sockaddr*)client_sock, client_sock_len);
 					if(cfd == -1) {
 						throw std::runtime_error("can't accept connection");
 					}
 					client_fds.emplace_back(cfd);
+					client_socks.insert({client_sock, client_sock_len});
+					handleConnection(cfd);
 				}
 			}
-
-			void Handle(int fd) {}
 	};
 }
 

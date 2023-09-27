@@ -1,2 +1,2 @@
 server: main.cpp server.cpp
-	g++ $^ -o $@
+	g++ -g $^ -o $@
