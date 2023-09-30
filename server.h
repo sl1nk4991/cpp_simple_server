@@ -3,9 +3,10 @@
 #include <iostream>
 #include <thread>
 
-#define MAX_CONS 100
-#define MAX_BUFF_LENGTH 4096
-#define TIMEOUT 1000
+#define TIMEOUT			1000
+#define MAX_CONS		100
+#define MAX_BUFF_LENGTH	4096
+
 
 namespace tmp {
 	class Server {
