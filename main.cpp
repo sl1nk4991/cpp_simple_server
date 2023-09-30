@@ -1,9 +1,9 @@
-#include "server.cpp"
+#include "server.h"
 
 int main(int argc, char *argv[]) {
-	test::Server obj("127.0.0.1", 8080);
+	tmp::Server obj("127.0.0.1", 8080);
 
-	obj.Start();
+	obj.join();
 
 	return 0;
 }
