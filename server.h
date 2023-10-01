@@ -19,9 +19,6 @@ namespace tmp {
 		public:
 			Server(std::string addr, uint16_t port);
 			~Server();
-
-			void join();
-			void terminate();
 	};
 
 	extern "C" void signalHandler(int sig);

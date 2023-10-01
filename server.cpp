@@ -29,9 +29,12 @@ namespace tmp {
 
 	Server::~Server() {
 		this->terminate();
+
 		if (this->efd != -1) {
 			close(this->efd);
 		}
+
+		this->join();
 	}
 
 	void Server::start() {
@@ -53,22 +56,6 @@ namespace tmp {
 
 	void signalHandler(int sig) {
 		sig_obj->terminate();
-	}
-
-	void Server::terminate() {
-		this->m_terminate = true;
-
-		uint64_t one = 1;
-		auto ret = write(this->efd, &one, sizeof(one));
-		if (ret == -1) {
-			throw std::runtime_error(strerror(errno));
-		}
-	}
-
-	void Server::join() {
-		if (this->m_thread.joinable()) {
-			this->m_thread.join();
-		}
 	}
 
 	void Server::threadFunc() {

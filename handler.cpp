@@ -17,6 +17,18 @@
 
 namespace tmp {
 	Handler::Handler(int fd): fd(fd) {
+		this->start();
+	}
+
+	Handler::~Handler() {
+		this->terminate();
+		if(this->efd != -1) {
+			close(this->efd);
+		}
+		this->join();
+	}
+
+	void Handler::start() {
 		assert(!this->m_thread.joinable());
 
 		this->efd = eventfd(0, 0);
@@ -26,16 +38,6 @@ namespace tmp {
 
 		this->m_thread = std::thread([this]() { this->threadFunc(); });
 		pthread_setname_np(this->m_thread.native_handle(), "Handler");
-	}
-
-	Handler::~Handler() {
-		this->stop();
-	}
-
-	void Handler::stop() {
-		if (this->m_thread.joinable()) {
-			this->m_thread.join();
-		}
 	}
 
 	std::string *Handler::recvMessage() {
@@ -56,18 +58,6 @@ namespace tmp {
 			std::cerr << "message size: " << msg->length() << " actual sended: " << n << std::endl;
 		}
 	}
-
-	void Handler::terminate() {
-		this->m_terminate = true;
-
-		uint64_t one = 1;
-		auto ret = write(this->efd, &one, sizeof(one));
-		if (ret == -1) {
-			throw std::runtime_error(strerror(errno));
-		}
-	}
-
-	void Handler::join() {}
 
 	void Handler::threadFunc() {
 		std::vector<struct pollfd> fds = { {this->efd, POLLIN, 0}, {this->fd, POLLIN, 0} };

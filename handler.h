@@ -12,14 +12,11 @@ namespace tmp {
 			std::string *recvMessage();
 			void sendMessage(const std::string*);
 
-			void stop();
+			void start();
 			void threadFunc();
 
 		public:
 			explicit Handler(int fd);
 			~Handler();
-
-			void join();
-			void terminate();
 	};
 }
