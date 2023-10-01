@@ -1,6 +1,7 @@
 #include "server.h"
 #include "handler.h"
 #include <cerrno>
+#include <csignal>
 #include <cstdint>
 #include <cstring>
 #include <exception>
@@ -20,19 +21,21 @@
 
 namespace tmp {
 	Server::Server(std::string addr, uint16_t port)
-		:addr(addr), port(port), efd(-1)
+		:addr(addr), port(port)
 	{
+		tmp::sig_obj = this;
 		this->start();
 	}
 
 	Server::~Server() {
-		this->stop();
+		this->terminate();
 		if (this->efd != -1) {
 			close(this->efd);
 		}
 	}
 
 	void Server::start() {
+		signal(SIGINT, signalHandler);
 		assert(!this->m_thread.joinable());
 
 		if (efd != -1) {
@@ -48,8 +51,15 @@ namespace tmp {
 		pthread_setname_np(this->m_thread.native_handle(), "Server");
 	}
 
-	void Server::stop() {
-		auto ret = write(this->efd, &this->one, sizeof(this->one));
+	void signalHandler(int sig) {
+		sig_obj->terminate();
+	}
+
+	void Server::terminate() {
+		this->m_terminate = true;
+
+		uint64_t one = 1;
+		auto ret = write(this->efd, &one, sizeof(one));
 		if (ret == -1) {
 			throw std::runtime_error(strerror(errno));
 		}
@@ -68,17 +78,15 @@ namespace tmp {
 			throw std::runtime_error(strerror(errno));
 		}
 
-		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &this->one, sizeof(this->one)) != 0 ) {
+		int one = 1;
+		if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) != 0 ) {
 			throw std::runtime_error(strerror(errno));
 		}
 
-		struct sockaddr_in server_sock = {0, 0, 0, 0};
+		struct sockaddr_in server_sock = {0};
 		server_sock.sin_family = AF_INET;
 		server_sock.sin_port = htons(port);
 		server_sock.sin_addr.s_addr = INADDR_ANY;
-		/* if(inet_aton(addr.c_str(), &server_sock.sin_addr) != 1) {
-			throw std::runtime_error("can't use this address");
-		} */
 
 		if(bind(fd, (sockaddr*)&server_sock, sizeof(server_sock)) != 0) {
 			throw std::runtime_error(strerror(errno));
@@ -91,7 +99,7 @@ namespace tmp {
 		std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
 		std::unordered_map<int, Handler> handlers;
 
-		while (true) {
+		while (!this->m_terminate) {
 			int n = poll(fds.data(), fds.size(), -1);
 			if (n == -1) {
 				throw std::runtime_error(strerror(errno));

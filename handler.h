@@ -1,26 +1,25 @@
 #pragma once
 
-#include "server.h"
-#include <string>
-#include <thread>
+#include "thread.h"
+
+#define BUFFSIZE 1024
 
 namespace tmp {
-	class Handler {
+	class Handler: public Thread {
 		private:
-			std::thread m_thread;
-			int fd = -1;
-			bool m_terminate = false;
+			int fd;
 
-			std::string readMessage();
-			void sendMessage(const std::string&);
+			std::string *recvMessage();
+			void sendMessage(const std::string*);
 
 			void stop();
+			void threadFunc();
 
 		public:
 			explicit Handler(int fd);
 			~Handler();
 
+			void join();
 			void terminate();
-			void threadFunc();
 	};
 }
