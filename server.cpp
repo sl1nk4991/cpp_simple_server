@@ -100,8 +100,7 @@ namespace tmp {
         std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
         //std::unordered_map<int, Handler> handlers;
         ThreadPool threadPool;
-        //auto& handlers = *threadPool.getHandlers().get();
-        std::unordered_map<int, Handler>& handlers = *threadPool.getHandlers().get();
+        auto& handlers = *threadPool.getHandlers();
 
         while (!this->m_terminate) {
             int n = poll(fds.data(), fds.size(), -1);

@@ -33,8 +33,8 @@ namespace tmp {
         mutex_condition.notify_one();
     }
 
-    std::shared_ptr<std::unordered_map<int, Handler>> ThreadPool::getHandlers() {
-        return std::make_shared<std::unordered_map<int, Handler>>(this->handlers);
+    std::unordered_map<int, Handler>* ThreadPool::getHandlers() {
+        return &this->handlers;
     }
 
     void ThreadPool::terminate() {
@@ -72,6 +72,7 @@ namespace tmp {
                 this->queue.pop();
                 this->handlers.emplace(fd, fd);
             }
+            this->handlers.at(fd).join();
         }
     }
 }

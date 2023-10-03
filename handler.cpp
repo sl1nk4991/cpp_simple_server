@@ -33,8 +33,10 @@ namespace tmp {
         if (this->efd == -1) {
             throw std::runtime_error(strerror(errno));
         }
+    }
 
-        mainFunc();
+    void Handler::join() {
+        this->mainFunc();
     }
 
     void Handler::terminate() {

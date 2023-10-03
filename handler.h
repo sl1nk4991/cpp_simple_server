@@ -23,6 +23,7 @@ namespace tmp {
             explicit Handler(int fd);
             ~Handler();
 
+            void join();
             void terminate();
     };
 }

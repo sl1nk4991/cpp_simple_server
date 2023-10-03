@@ -28,7 +28,7 @@ namespace tmp {
 
             void start();
             void queueJob(int fd);
-            std::shared_ptr<std::unordered_map<int, Handler>> getHandlers();
+            std::unordered_map<int, Handler>* getHandlers();
             void terminate();
     };
 }
