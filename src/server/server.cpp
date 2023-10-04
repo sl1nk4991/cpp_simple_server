@@ -43,7 +43,7 @@ namespace tmp {
 
     void Server::start() {
         std::signal(SIGINT, signalHandler);
-        assert(!this->m_thread.joinable());        
+        assert(!this->m_thread.joinable());
 
         if (efd != -1) {
             close(this->efd);
@@ -53,7 +53,7 @@ namespace tmp {
         if (this->efd == -1) {
             throw std::runtime_error(strerror(errno));
         }
-        
+
         this->m_thread = std::thread([this]() { this->threadFunc(); });
         pthread_setname_np(this->m_thread.native_handle(), "Server");
     }
@@ -118,7 +118,7 @@ namespace tmp {
                     if (cfd != -1) {
                         fds.push_back({cfd, POLLIN, 0});
                         handlers.emplace(cfd, cfd);
-                        threadPool.queueJob([&handlers, cfd] {handlers.at(cfd).join();});        
+                        threadPool.queueJob([&handlers, cfd] {handlers.at(cfd).join();});
                     } else {
                         std::cout << strerror(errno) << std::endl;
                     }
@@ -157,3 +157,4 @@ namespace tmp {
         std::cout << "server stoped" << std::endl;
     }
 }
+

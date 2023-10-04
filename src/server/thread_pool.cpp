@@ -13,7 +13,7 @@ namespace tmp {
 
     ThreadPool::ThreadPool() {
         this->num_threads = std::thread::hardware_concurrency();
-        
+
         this->start();
     }
 

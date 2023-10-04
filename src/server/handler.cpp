@@ -47,7 +47,7 @@ namespace tmp {
             throw std::runtime_error(strerror(errno));
         }
     }
-    
+
     bool Handler::isFdExsit(int fd) {
         return this->fd == fd;
     }
@@ -96,3 +96,4 @@ namespace tmp {
         shutdown(this->fd, SHUT_RDWR);
     }
 }
+
