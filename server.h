@@ -12,12 +12,13 @@
 namespace tmp {
     class Server {
         private:
-            int efd = -1;
-            uint64_t one = 1;
-            uint16_t    port;
-            std::string addr;
-            std::thread m_thread;
-            bool m_terminate = false;
+            int         efd = -1;
+            uint64_t    one = 1;
+            bool        m_terminate = false;
+
+            uint16_t                port;
+            std::string             addr;
+            std::thread             m_thread;
 
             void start();
             void threadFunc();
@@ -27,7 +28,7 @@ namespace tmp {
             ~Server();
 
             void join();
-            void terminate();
+            void stop();
     };
 
     extern "C" void signalHandler(int sig);

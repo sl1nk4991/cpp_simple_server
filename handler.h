@@ -24,6 +24,7 @@ namespace tmp {
             ~Handler();
 
             void join();
-            void terminate();
+            void stop();
+            bool isFdExsit(int fd);
     };
 }

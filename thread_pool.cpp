@@ -7,7 +7,13 @@
 #include <unordered_map>
 
 namespace tmp {
+    ThreadPool::ThreadPool(int n): num_threads(n) {
+        this->start();
+    }
+
     ThreadPool::ThreadPool() {
+        this->num_threads = std::thread::hardware_concurrency();
+        
         this->start();
     }
 
@@ -16,40 +22,23 @@ namespace tmp {
     }
 
     void ThreadPool::start() {
-        int n = std::thread::hardware_concurrency();
-
-        for(int i = 0; i < n; i++) {
-            std::cout << "thread " << i << " created" << std::endl;
+        for(int i = 0; i < this->num_threads; i++) {
             threads.emplace_back(std::thread([this]() { this->threadLoop(); }));
             pthread_setname_np(threads.back().native_handle(), std::string("Worker " + std::to_string(i)).c_str());
         }
     }
 
-    void ThreadPool::queueJob(int fd) {
+    void ThreadPool::queueJob(const std::function<void()>& job) {
         {
             std::unique_lock<std::mutex> lock(this->mutex);
-            this->queue.push(fd);
+            this->queue.push(job);
         }
         mutex_condition.notify_one();
     }
 
-    std::unordered_map<int, Handler>* ThreadPool::getHandlers() {
-        return &this->handlers;
-    }
-
-    void ThreadPool::terminate() {
-        {
-            //std::unique_lock<std::mutex> lock(this->mutex);
-            this->m_terminate = true;
-        }
+    void ThreadPool::stop() {
+        this->m_terminate = true;
         mutex_condition.notify_all();
-
-        for (auto& [fd, handler]: this->handlers) {
-            if (handlers.find(fd) != this->handlers.end()) {
-                handler.terminate();
-            }
-
-        }
 
         for(auto& active_thread: threads) {
             active_thread.join();
@@ -58,9 +47,17 @@ namespace tmp {
         threads.clear();
     }
 
+    void ThreadPool::terminate() {
+        for(auto& active_thread: threads) {
+            active_thread.~thread();
+        }
+
+        threads.clear();
+    }
+
     void ThreadPool::threadLoop() {
-        while (!this->m_terminate) {
-            int fd;
+        while (true) {
+            std::function<void()> job;
             {
                 std::unique_lock<std::mutex> lock(this->mutex);
                 this->mutex_condition.wait(
@@ -68,11 +65,10 @@ namespace tmp {
                 );
                 if(this->m_terminate)
                     return;
-                fd = this->queue.front();
+                job = this->queue.front();
                 this->queue.pop();
-                this->handlers.emplace(fd, fd);
             }
-            this->handlers.at(fd).join();
+            job();
         }
     }
 }

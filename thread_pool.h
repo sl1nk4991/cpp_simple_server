@@ -8,27 +8,28 @@
 #include <unordered_map>
 #include <vector>
 #include <memory>
-#include "handler.h"
 
 namespace tmp {
     class ThreadPool {
         private:
             std::mutex mutex;
-            std::queue<int> queue;
+            uint64_t num_threads;
             std::vector<std::thread> threads;
+            std::queue<std::function<void()>> queue;
             std::condition_variable mutex_condition;
-            std::unordered_map<int, Handler> handlers;
             bool m_terminate = false;
 
             void threadLoop();
+            void terminate(); 
 
         public:
+            ThreadPool(int num_threads);
             ThreadPool();
             ~ThreadPool();
 
             void start();
-            void queueJob(int fd);
-            std::unordered_map<int, Handler>* getHandlers();
-            void terminate();
+            void queueJob(const std::function<void()>& job);
+            bool isBusy();
+            void stop();
     };
 }

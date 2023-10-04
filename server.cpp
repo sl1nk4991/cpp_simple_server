@@ -21,7 +21,7 @@
 
 namespace tmp {
     void signalHandler(int sig) {
-        sig_obj->terminate();
+        sig_obj->stop();
     }
 
     Server::Server(std::string addr, uint16_t port)
@@ -32,7 +32,7 @@ namespace tmp {
     }
 
     Server::~Server() {
-        this->terminate();
+        this->stop();
 
         if (this->efd != -1) {
             close(this->efd);
@@ -64,7 +64,7 @@ namespace tmp {
         }
     }
 
-    void Server::terminate() {
+    void Server::stop() {
         this->m_terminate = true;
 
         auto ret = write(this->efd, &this->one, sizeof(this->one));
@@ -97,10 +97,9 @@ namespace tmp {
             throw std::runtime_error(strerror(errno));
         }
 
-        std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
-        //std::unordered_map<int, Handler> handlers;
         ThreadPool threadPool;
-        auto& handlers = *threadPool.getHandlers();
+        std::unordered_map<int, Handler> handlers;
+        std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
 
         while (!this->m_terminate) {
             int n = poll(fds.data(), fds.size(), -1);
@@ -118,8 +117,8 @@ namespace tmp {
 
                     if (cfd != -1) {
                         fds.push_back({cfd, POLLIN, 0});
-                        //handlers.emplace(cfd, cfd);
-                        threadPool.queueJob(cfd);
+                        handlers.emplace(cfd, cfd);
+                        threadPool.queueJob([&handlers, cfd] {handlers.at(cfd).join();});        
                     } else {
                         std::cout << strerror(errno) << std::endl;
                     }
@@ -132,8 +131,11 @@ namespace tmp {
                     if (it->revents && recv(it->fd, &c, sizeof(c), MSG_PEEK|MSG_DONTWAIT) == 0) {
                         std::cout << "client disconnected" << std::endl;
                         close(it->fd);
-                        handlers.at(it->fd).terminate();
-                        handlers.erase(it->fd);
+                        if (handlers.find(it->fd) != handlers.end())
+                        {
+                            handlers.at(it->fd).stop();
+                            handlers.erase(it->fd);
+                        }
                         it = fds.erase(it);
                     } else {
                         it->revents = 0;
@@ -144,13 +146,14 @@ namespace tmp {
         }
 
         for (auto it = fds.begin() + 1; it != fds.end(); it++) {
-            close(it->fd);
-            if (handlers.find(it->fd) != handlers.end()) {
-                handlers.at(it->fd).terminate();
-            }
+                close(it->fd);
+                if (handlers.find(it->fd) != handlers.end()) {
+                    handlers.at(it->fd).stop();
+                    handlers.erase(it->fd);
+                }
         }
 
-        threadPool.terminate();
+        threadPool.stop();
         std::cout << "server stoped" << std::endl;
     }
 }

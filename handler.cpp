@@ -22,7 +22,7 @@ namespace tmp {
     }
 
     Handler::~Handler() {
-        this->terminate();
+        this->stop();
         if(this->efd != -1) {
             close(this->efd);
         }
@@ -39,13 +39,17 @@ namespace tmp {
         this->mainFunc();
     }
 
-    void Handler::terminate() {
+    void Handler::stop() {
         this->m_terminate = true;
 
         auto ret = write(this->efd, &this->one, sizeof(this->one));
         if (ret == -1) {
             throw std::runtime_error(strerror(errno));
         }
+    }
+    
+    bool Handler::isFdExsit(int fd) {
+        return this->fd == fd;
     }
 
     std::unique_ptr<std::string> Handler::recvMessage() {
