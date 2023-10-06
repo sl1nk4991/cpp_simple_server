@@ -27,23 +27,28 @@ namespace tmp {
     Server::Server(std::string addr, uint16_t port)
         :addr(addr), port(port)
     {
-        tmp::sig_obj = this;
+        this->start();
+    }
+    Server::Server(uint16_t port)
+        :port(port)
+    {
+        this->start();
+    }
+    Server::Server() {
+        this->port = 8080;
+        
         this->start();
     }
 
     Server::~Server() {
-        this->stop();
-
         if (this->efd != -1) {
             close(this->efd);
         }
-
-        this->join();
-    }
+     }
 
     void Server::start() {
+        tmp::sig_obj = this;
         std::signal(SIGINT, signalHandler);
-        assert(!this->m_thread.joinable());
 
         if (efd != -1) {
             close(this->efd);
@@ -54,14 +59,7 @@ namespace tmp {
             throw std::runtime_error(strerror(errno));
         }
 
-        this->m_thread = std::thread([this]() { this->threadFunc(); });
-        pthread_setname_np(this->m_thread.native_handle(), "Server");
-    }
-
-    void Server::join() {
-        if (this->m_thread.joinable()) {
-            this->m_thread.join();
-        }
+        this->mainFunc();
     }
 
     void Server::stop() {
@@ -73,7 +71,7 @@ namespace tmp {
         }
     }
 
-    void Server::threadFunc() {
+    void Server::mainFunc() {
         std::cout << "listen on port: " << this->port << std::endl;
         int fd = socket(AF_INET, SOCK_STREAM, 0);
         if(fd == -1) {
@@ -87,24 +85,33 @@ namespace tmp {
         struct sockaddr_in server_sock = {0};
         server_sock.sin_family = AF_INET;
         server_sock.sin_port = htons(port);
-        server_sock.sin_addr.s_addr = INADDR_ANY;
+        if (addr.empty()) {
+            server_sock.sin_addr.s_addr = INADDR_ANY;
+        } else {
+            int ret = inet_aton(addr.c_str(), &server_sock.sin_addr);
+            if (!ret) {
+                throw std::runtime_error("inet_aton: can't convert ip address");
+            }
+        }
 
         if(bind(fd, (sockaddr*)&server_sock, sizeof(server_sock)) != 0) {
             throw std::runtime_error(strerror(errno));
         }
 
-        if(listen(fd, MAX_CONS) != 0) {
+        if(listen(fd, MAX_CON_QUEUE) != 0) {
             throw std::runtime_error(strerror(errno));
         }
 
-        ThreadPool threadPool;
+        ThreadPool threadPool;            
         std::unordered_map<int, Handler> handlers;
         std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
 
         while (!this->m_terminate) {
             int n = poll(fds.data(), fds.size(), -1);
             if (n == -1) {
-                throw std::runtime_error(strerror(errno));
+                if (errno != EINTR) {
+                    throw std::runtime_error(strerror(errno));
+                }
             }
 
             if (n > 0) {

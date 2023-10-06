@@ -3,7 +3,6 @@
 #include <cerrno>
 #include <cstdint>
 #include <cstdio>
-#include <event2/event_compat.h>
 #include <iostream>
 #include <memory>
 #include <pthread.h>

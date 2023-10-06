@@ -1,12 +1,10 @@
 #pragma once
 
 #include <string>
-#include <thread>
 #include "thread_pool.h"
 #include "handler.h"
 
-#define TIMEOUT         1000
-#define MAX_CONS        100
+#define MAX_CON_QUEUE   10
 #define MAX_BUFF_LENGTH 4096
 
 namespace tmp {
@@ -16,18 +14,18 @@ namespace tmp {
             uint64_t    one = 1;
             bool        m_terminate = false;
 
-            uint16_t                port;
-            std::string             addr;
-            std::thread             m_thread;
+            uint16_t    port;
+            std::string addr;
 
             void start();
-            void threadFunc();
+            void mainFunc();
 
         public:
             Server(std::string addr, uint16_t port);
+            Server(uint16_t port);
+            Server();
             ~Server();
 
-            void join();
             void stop();
     };
 
