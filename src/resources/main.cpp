@@ -1,4 +1,5 @@
 #include "resources/socket.h"
+#include "resources/thread_pool.h"
 
 //TODO
 //Write tests for resources

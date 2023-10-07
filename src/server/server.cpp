@@ -1,4 +1,5 @@
 #include "server.h"
+
 #include <cerrno>
 #include <csignal>
 #include <cstdint>
@@ -23,87 +24,32 @@ namespace tmp {
         sig_obj->stop();
     }
 
-    Server::Server(std::string addr, uint16_t port)
+    Server::Server(uint16_t port, std::string addr)
         :addr(addr), port(port)
     {
         this->start();
     }
-    Server::Server(uint16_t port)
-        :port(port)
-    {
-        this->start();
-    }
-    Server::Server() {
-        this->port = 8080;
-        
-        this->start();
-    }
 
-    Server::~Server() {
-        if (this->efd != -1) {
-            close(this->efd);
-        }
-     }
+    Server::~Server() {}
+
+    void Server::stop() {
+        this->m_terminate = true;
+
+        event.Write();
+    }
 
     void Server::start() {
         tmp::sig_obj = this;
         std::signal(SIGINT, signalHandler);
 
-        if (efd != -1) {
-            close(this->efd);
-        }
-
-        this->efd = eventfd(0, 0);
-        if (this->efd == -1) {
-            throw std::runtime_error(strerror(errno));
-        }
-
-        this->mainFunc();
-    }
-
-    void Server::stop() {
-        this->m_terminate = true;
-
-        auto ret = write(this->efd, &this->one, sizeof(this->one));
-        if (ret == -1) {
-            throw std::runtime_error(strerror(errno));
-        }
-    }
-
-    void Server::mainFunc() {
         std::cout << "listen on port: " << this->port << std::endl;
-        int fd = socket(AF_INET, SOCK_STREAM, 0);
-        if(fd == -1) {
-            throw std::runtime_error(strerror(errno));
-        }
+        Resources::TCPSocket sock;
+        sock.Bind(this->port, this->addr);
+        sock.Listen(MAX_CON_QUEUE);
 
-        if(setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &this->one, sizeof(this->one)) != 0 ) {
-            throw std::runtime_error(strerror(errno));
-        }
-
-        struct sockaddr_in server_sock = {0};
-        server_sock.sin_family = AF_INET;
-        server_sock.sin_port = htons(port);
-        if (addr.empty()) {
-            server_sock.sin_addr.s_addr = INADDR_ANY;
-        } else {
-            int ret = inet_aton(addr.c_str(), &server_sock.sin_addr);
-            if (!ret) {
-                throw std::runtime_error("inet_aton: can't convert ip address");
-            }
-        }
-
-        if(bind(fd, (sockaddr*)&server_sock, sizeof(server_sock)) != 0) {
-            throw std::runtime_error(strerror(errno));
-        }
-
-        if(listen(fd, MAX_CON_QUEUE) != 0) {
-            throw std::runtime_error(strerror(errno));
-        }
-
-        ThreadPool threadPool;            
+        ThreadPool threadPool;
         std::unordered_map<int, Handler> handlers;
-        std::vector<struct pollfd> fds{ { this->efd, POLLIN, 0 }, { fd, POLLIN, 0 } };
+        std::vector<struct pollfd> fds{ { this->event.getFd(), POLLIN, 0 }, { sock.getFd(), POLLIN, 0 } };
 
         while (!this->m_terminate) {
             int n = poll(fds.data(), fds.size(), -1);
@@ -118,7 +64,7 @@ namespace tmp {
                     std::cout << "stop request recived" << std::endl;
                     break;
                 } else if(fds[1].revents) {
-                    int cfd = accept(fd, NULL, NULL);
+                    int cfd = sock.Accept();
                     std::cout << "new connenction" << std::endl;
 
                     if (cfd != -1) {

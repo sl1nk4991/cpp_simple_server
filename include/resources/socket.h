@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstdint>
 #include <string>
 #include <sys/socket.h>
@@ -5,7 +7,7 @@
 namespace Resources {
     class TCPSocket {
         protected:
-            uint32_t fd;
+            int fd;
 
         public:
             enum SHUT_METHOD { RDWR = SHUT_RDWR, RD = SHUT_RD, WR = SHUT_WR};
@@ -25,7 +27,7 @@ namespace Resources {
             uint64_t Recv(std::string&);
             uint64_t Send(const std::string&);
             void Shutdown(SHUT_METHOD = RDWR);
-            uint32_t getFd();
+            int getFd();
     };
 }
 

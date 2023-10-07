@@ -1,5 +1,4 @@
 #include "resources/socket.h"
-
 #include <cerrno>
 #include <cstdint>
 #include <cstring>
@@ -36,6 +35,12 @@ namespace Resources {
      *    return *this;
      *}
      */
+
+    TCPSocket::~TCPSocket() {
+        if (this->fd != -1) {
+            close(this->fd);
+        }
+    }
 
     void TCPSocket::Bind(uint16_t port, std::string addr) {
         struct sockaddr_in sock;
@@ -119,10 +124,8 @@ namespace Resources {
         CHECK(ret)
     }
 
-    TCPSocket::~TCPSocket() {
-        if (this->fd != -1) {
-            close(this->fd);
-        }
+    int TCPSocket::getFd() {
+        return this->fd;
     }
 }
 

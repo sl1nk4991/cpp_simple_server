@@ -1,6 +1,8 @@
 #pragma once
 
 #include "resources/thread_pool.h"
+#include "resources/socket.h"
+#include "resources/event.h"
 #include "handler.h"
 
 #include <string>
@@ -11,19 +13,17 @@
 namespace tmp {
     class Server {
         private:
-            int         efd = -1;
-            uint64_t    one = 1;
-            bool        m_terminate = false;
+            Resources::Event event;
+            bool m_terminate = false;
 
-            uint16_t    port;
             std::string addr;
+            uint16_t    port;
 
             void start();
             void mainFunc();
 
         public:
-            Server(std::string addr, uint16_t port);
-            Server(uint16_t port);
+            Server(uint16_t port = 8080, std::string addr = "");
             Server();
             ~Server();
 
