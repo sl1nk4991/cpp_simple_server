@@ -1,8 +1,9 @@
 #pragma once
 
-#include <string>
-#include "thread_pool.h"
+#include "resources/thread_pool.h"
 #include "handler.h"
+
+#include <string>
 
 #define MAX_CON_QUEUE   10
 #define MAX_BUFF_LENGTH 4096
