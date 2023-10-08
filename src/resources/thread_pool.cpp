@@ -5,13 +5,14 @@
 #include <mutex>
 #include <unordered_map>
 
-namespace tmp {
+namespace Resources {
     ThreadPool::ThreadPool(int n): num_threads(n) {
         this->start();
     }
 
     ThreadPool::ThreadPool() {
-        this->num_threads = std::thread::hardware_concurrency();
+        //this->num_threads = std::thread::hardware_concurrency();
+        this->num_threads = 3;
 
         this->start();
     }

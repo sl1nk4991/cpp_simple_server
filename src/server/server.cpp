@@ -47,8 +47,8 @@ namespace tmp {
         sock.Bind(this->port, this->addr);
         sock.Listen(MAX_CON_QUEUE);
 
-        ThreadPool threadPool;
-        std::unordered_map<int, Handler> handlers;
+        std::vector<std::unique_ptr<Handler>> handlers;
+        Resources::ThreadPool threadPool;
         std::vector<struct pollfd> fds{ { this->event.getFd(), POLLIN, 0 }, { sock.getFd(), POLLIN, 0 } };
 
         while (!this->m_terminate) {
@@ -68,45 +68,22 @@ namespace tmp {
                     std::cout << "new connenction" << std::endl;
 
                     if (cfd != -1) {
-                        fds.push_back({cfd, POLLIN, 0});
-                        handlers.emplace(cfd, cfd);
-                        threadPool.queueJob([&handlers, cfd] {handlers.at(cfd).join();});
+                        handlers.emplace_back(std::make_unique<Handler>(cfd));
+                        threadPool.queueJob([&handlers] {handlers.back().get()->start();});
                     } else {
                         std::cout << strerror(errno) << std::endl;
                     }
 
                     fds[1].revents = 0;
                 }
-
-                for (auto it = fds.begin() + 2; it != fds.end(); ) {
-                    char c;
-                    if (it->revents && recv(it->fd, &c, sizeof(c), MSG_PEEK|MSG_DONTWAIT) == 0) {
-                        std::cout << "client disconnected" << std::endl;
-                        close(it->fd);
-                        if (handlers.find(it->fd) != handlers.end())
-                        {
-                            handlers.at(it->fd).stop();
-                            handlers.erase(it->fd);
-                        }
-                        it = fds.erase(it);
-                    } else {
-                        it->revents = 0;
-                        it++;
-                    }
-                }
             }
         }
 
-        for (auto it = fds.begin() + 1; it != fds.end(); it++) {
-                close(it->fd);
-                if (handlers.find(it->fd) != handlers.end()) {
-                    handlers.at(it->fd).stop();
-                    handlers.erase(it->fd);
-                }
+        for (auto it = handlers.begin(); it != handlers.end(); it++) {
+            it.base()->get()->stop();
         }
 
         threadPool.stop();
         std::cout << "server stoped" << std::endl;
     }
 }
-

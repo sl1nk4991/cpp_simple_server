@@ -30,4 +30,3 @@ namespace Resources {
             int getFd();
     };
 }
-

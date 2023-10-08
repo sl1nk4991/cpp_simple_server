@@ -1,5 +1,8 @@
 #pragma once
 
+#include "resources/event.h"
+#include "resources/socket.h"
+
 #include <cstdint>
 #include <string>
 #include <memory>
@@ -9,23 +12,16 @@
 namespace tmp {
     class Handler {
         private:
-            int fd, efd = -1;
             uint64_t one = 1;
+            Resources::Event event;
             bool m_terminate = false;
-
-            std::unique_ptr<std::string> recvMessage();
-            void sendMessage(const std::string&);
-
-            void start();
-            void mainFunc();
+            Resources::TCPSocket sock;
 
         public:
             explicit Handler(int fd);
             ~Handler();
 
-            void join();
+            void start();
             void stop();
-            bool isFdExsit(int fd);
     };
 }
-

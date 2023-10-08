@@ -16,83 +16,55 @@
 #include <unistd.h>
 
 namespace tmp {
-    Handler::Handler(int fd): fd(fd) {
-        this->start();
-    }
+    Handler::Handler(int fd): sock(fd) {}
 
     Handler::~Handler() {
         this->stop();
-        if(this->efd != -1) {
-            close(this->efd);
-        }
-    }
-
-    void Handler::start() {
-        this->efd = eventfd(0, 0);
-        if (this->efd == -1) {
-            throw std::runtime_error(strerror(errno));
-        }
-    }
-
-    void Handler::join() {
-        this->mainFunc();
     }
 
     void Handler::stop() {
         this->m_terminate = true;
 
-        auto ret = write(this->efd, &this->one, sizeof(this->one));
-        if (ret == -1) {
-            throw std::runtime_error(strerror(errno));
-        }
+        event.Write();
     }
 
-    bool Handler::isFdExsit(int fd) {
-        return this->fd == fd;
-    }
+    void Handler::start() {
+        std::string buff(BUFFSIZE, '\0');
+        std::vector<struct pollfd> fds = { {this->event.getFd(), POLLIN, 0}, {this->sock.getFd(), POLLIN, 0} };
 
-    std::unique_ptr<std::string> Handler::recvMessage() {
-        std::unique_ptr<std::string> msg = std::make_unique<std::string>(BUFFSIZE, '\0');
+        try {
+            while (!this->m_terminate) {
+                int n = poll(fds.data(), fds.size(), -1);
+                if (n == -1) {
+                    throw std::runtime_error(strerror(errno));
+                }
 
-        int rb = recv(this->fd, msg->data(), msg->size(), 0);
-        if(rb < 1) {
-            msg->clear();
-            return msg;
-        }
-
-        return msg;
-    }
-
-    void Handler::sendMessage(const std::string& msg) {
-        int n = send(this->fd, msg.c_str(), msg.length(), 0);
-        if (n != msg.size()) {
-            std::cerr << "message size: " << msg.length() << " actual sended: " << n << std::endl;
-        }
-    }
-
-    void Handler::mainFunc() {
-        std::vector<struct pollfd> fds = { {this->efd, POLLIN, 0}, {this->fd, POLLIN, 0} };
-
-        while (!this->m_terminate) {
-            int n = poll(fds.data(), fds.size(), -1);
-            if (n == -1) {
-                throw std::runtime_error(strerror(errno));
-            }
-
-            if (n > 0) {
-                if (fds[0].revents) {
-                    std::cout << "handle thread terminated" << std::endl;
-                } else if (fds[1].revents) {
-                    std::unique_ptr<std::string> msg = recvMessage();
-                    if (*msg != "") {
-                        std::cout << "Messsage: " << *msg << std::endl;
-                        this->sendMessage(*msg.get());
+                if (n > 0) {
+                    if (fds[0].revents) {
+                        std::cout << "handle thread terminated" << std::endl;
+                        break;
+                    } else if (fds[1].revents) {
+                        char c;
+                        if (recv(this->event.getFd(), &c, sizeof(c), MSG_PEEK|MSG_DONTWAIT) == 0) {
+                            std::cout << "client disconnected" << std::endl;
+                            break;
+                        }
+                        sock.Recv(buff);
+                        if (buff.data()[0] != '\0') {
+                            std::cout << "Messsage: " << buff << std::endl;
+                            sock.Send(buff);
+                        }
+                        std::memset(buff.data(), 0, buff.size());
                     }
                 }
             }
+        } catch(const std::system_error& e) {
+            if (e.code().value() == ECONNRESET) {
+                std::cout << "handler: " << e.code().message() << std::endl;
+                return;
+            }
         }
 
-        shutdown(this->fd, SHUT_RDWR);
+        sock.Shutdown();
     }
 }
-

@@ -20,7 +20,6 @@ namespace tmp {
             uint16_t    port;
 
             void start();
-            void mainFunc();
 
         public:
             Server(uint16_t port = 8080, std::string addr = "");
@@ -33,4 +32,3 @@ namespace tmp {
     extern "C" void signalHandler(int sig);
     static Server *sig_obj;
 }
-

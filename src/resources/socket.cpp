@@ -43,6 +43,11 @@ namespace Resources {
     }
 
     void TCPSocket::Bind(uint16_t port, std::string addr) {
+        {
+            int one = 1;
+            setsockopt(this->fd, SOCK_STREAM, SO_REUSEADDR, &one, sizeof(one));
+        }
+
         struct sockaddr_in sock;
         memset(&sock, 0, sizeof(sock));
         sock.sin_family = AF_INET;
@@ -128,4 +133,3 @@ namespace Resources {
         return this->fd;
     }
 }
-

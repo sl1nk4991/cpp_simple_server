@@ -9,7 +9,7 @@
 #include <vector>
 #include <memory>
 
-namespace tmp {
+namespace Resources {
     class ThreadPool {
         private:
             std::mutex mutex;
