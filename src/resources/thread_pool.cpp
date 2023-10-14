@@ -1,4 +1,4 @@
-#include "resources/thread_pool.h"
+#include "thread_pool.h"
 #include <functional>
 #include <iostream>
 #include <memory>

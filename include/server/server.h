@@ -1,8 +1,8 @@
 #pragma once
 
-#include "resources/thread_pool.h"
-#include "resources/socket.h"
-#include "resources/event.h"
+#include "thread_pool.h"
+#include "tcp_socket.h"
+#include "event.h"
 #include "handler.h"
 
 #include <string>
@@ -19,13 +19,11 @@ namespace tmp {
             std::string addr;
             uint16_t    port;
 
-            void start();
-
         public:
             Server(uint16_t port = 8080, std::string addr = "");
-            Server();
             ~Server();
 
+            void start();
             void stop();
     };
 

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "resources/event.h"
-#include "resources/socket.h"
+#include "event.h"
+#include "tcp_socket.h"
 
 #include <cstdint>
 #include <string>

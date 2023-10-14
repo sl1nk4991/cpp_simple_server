@@ -25,10 +25,7 @@ namespace tmp {
     }
 
     Server::Server(uint16_t port, std::string addr)
-        :addr(addr), port(port)
-    {
-        this->start();
-    }
+        :addr(addr), port(port) {}
 
     Server::~Server() {}
 

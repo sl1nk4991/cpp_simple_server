@@ -9,7 +9,11 @@ namespace tmp {
             char **argv;
 
             void start();
+            void printHelp();
+            void printInvArg();
+
         public:
             Application(int argc, char **argv);
     };
 }
+
